@@ -13,6 +13,40 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fique_ryco_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fique_ryco_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/fique_ryco?schema=public"
+      JWT_SECRET: "your-super-secret-jwt-key-change-this-in-production"
+      JWT_EXPIRATION: "24h"
+      PORT: "3000"
+      CORS_ORIGIN: "http://localhost:3001"
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - fique_ryco_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && node dist/main"
 
 volumes:
   postgres_data:
+
+networks:
+  fique_ryco_network:
+    driver: bridge

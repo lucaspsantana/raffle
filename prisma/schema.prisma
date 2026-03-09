@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(CLIENT)
+  cpf       String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tickets Ticket[]
+
+  @@index([email])
+  @@index([cpf])
+}
+
+model Raffle {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  closingDate DateTime
+  ticketPrice Decimal  @db.Decimal(10, 2)
+  maxTickets  Int
+  imageUrl    String?
+  winnerId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tickets Ticket[]
+
+  @@index([closingDate])
+}
+
+model Ticket {
+  id           String   @id @default(uuid())
+  number       Int
+  purchaseDate DateTime @default(now())
+  raffleId     String
+  userId       String
+
+  raffle Raffle @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raffleId, number])
+  @@index([userId])
+  @@index([raffleId])
+}

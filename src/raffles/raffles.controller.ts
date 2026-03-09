@@ -1,21 +1,21 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
-import { RafflesService } from './raffles.service';
-import { CreateRaffleDto } from './dto/create-raffle.dto';
-import { UpdateRaffleDto } from './dto/update-raffle.dto';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { CreateRaffleDto } from './dto/create-raffle.dto';
+import { UpdateRaffleDto } from './dto/update-raffle.dto';
+import { RafflesService } from './raffles.service';
 
 @ApiTags('raffles')
 @Controller('raffles')

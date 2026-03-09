@@ -46,7 +46,8 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<{ access_token: string; user: any }> {
-    // Busca usuário por email
+    try {
+      // Busca usuário por email
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -79,6 +80,11 @@ export class AuthService {
       access_token,
       user: userWithoutPassword,
     };
+    } catch (error) {
+      console.log(error);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    
   }
 
   /**

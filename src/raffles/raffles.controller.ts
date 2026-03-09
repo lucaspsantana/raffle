@@ -14,6 +14,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateRaffleDto } from './dto/create-raffle.dto';
+import { SetWinnerDto } from './dto/set-winner.dto';
 import { UpdateRaffleDto } from './dto/update-raffle.dto';
 import { RafflesService } from './raffles.service';
 
@@ -127,29 +128,17 @@ export class RafflesController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Definir ganhador da rifa (Admin)',
-    description: 'Define o ganhador de uma rifa encerrada',
+    description: 'Define o ganhador de uma rifa informando o número do bilhete vencedor. O sistema encontrará automaticamente o usuário que comprou aquele bilhete.',
   })
   @ApiParam({ name: 'id', description: 'ID da rifa', example: '123e4567-e89b-12d3-a456-426614174000' })
-  @ApiBody({ 
-    schema: { 
-      type: 'object', 
-      properties: { 
-        winnerId: { 
-          type: 'string', 
-          example: '123e4567-e89b-12d3-a456-426614174000',
-          description: 'ID do usuário ganhador',
-        } 
-      } 
-    } 
-  })
   @ApiResponse({ status: 200, description: 'Ganhador definido com sucesso' })
   @ApiResponse({ status: 401, description: 'Não autenticado' })
   @ApiResponse({ status: 403, description: 'Acesso negado - apenas Admin' })
-  @ApiResponse({ status: 404, description: 'Rifa não encontrada' })
+  @ApiResponse({ status: 404, description: 'Rifa ou bilhete não encontrado' })
   async setWinner(
     @Param('id') id: string,
-    @Body('winnerId') winnerId: string,
+    @Body() setWinnerDto: SetWinnerDto,
   ) {
-    return this.rafflesService.setWinner(id, winnerId);
+    return this.rafflesService.setWinner(id, setWinnerDto.winningNumber);
   }
 }

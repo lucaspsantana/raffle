@@ -101,17 +101,40 @@ export class RafflesService {
     });
   }
 
-  async setWinner(raffleId: string, winnerId: string): Promise<Raffle> {
-    const raffle = await this.findById(raffleId);
-    if (!raffle) {
-      throw new NotFoundException(`Raffle with ID ${raffleId} not found`);
-    }
+  async setWinner(raffleId: string, winningNumber: number): Promise<Raffle> {
+      const raffle = await this.findById(raffleId);
+      if (!raffle) {
+        throw new NotFoundException(`Raffle with ID ${raffleId} not found`);
+      }
 
-    return this.prisma.raffle.update({
-      where: { id: raffleId },
-      data: { winnerId },
-    });
-  }
+      // Buscar o bilhete com o número vencedor
+      const winningTicket = await this.prisma.ticket.findUnique({
+        where: {
+          raffleId_number: {
+            raffleId,
+            number: winningNumber,
+          },
+        },
+      });
+
+      if (!winningTicket) {
+        throw new NotFoundException(
+          `Ticket with number ${winningNumber} not found for this raffle`,
+        );
+      }
+
+      // Atualizar a rifa com o ID do usuário que comprou o bilhete vencedor
+      return this.prisma.raffle.update({
+        where: { id: raffleId },
+        data: { winnerId: winningTicket.userId },
+        include: {
+          tickets: {
+            where: { number: winningNumber },
+            include: { user: true },
+          },
+        },
+      });
+    }
 
   isActive(raffle: Raffle): boolean {
     return new Date(raffle.closingDate) > new Date();

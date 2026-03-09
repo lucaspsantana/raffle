@@ -330,7 +330,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"winnerId\": \"{{client_id}}\"\n}",
+							"raw": "{\n  \"winningNumber\": 42\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -342,7 +342,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["raffles", "{{raffle_id}}", "winner"]
 						},
-						"description": "Define o ganhador de uma rifa (apenas Admin)"
+						"description": "Define o ganhador de uma rifa informando o número do bilhete vencedor. O sistema encontrará automaticamente o usuário que comprou aquele bilhete."
 					},
 					"response": []
 				},

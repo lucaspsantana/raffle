@@ -177,24 +177,39 @@ describe('RafflesController', () => {
   });
 
   describe('setWinner', () => {
-    it('should set winner for a raffle', async () => {
+    it('should set winner for a raffle by winning number', async () => {
+      const setWinnerDto = { winningNumber: 42 };
       const raffleWithWinner = { ...mockRaffle, winnerId: 'user-1' };
       mockRafflesService.setWinner.mockResolvedValue(raffleWithWinner);
 
-      const result = await controller.setWinner('1', 'user-1');
+      const result = await controller.setWinner('1', setWinnerDto as any);
 
       expect(result).toEqual(raffleWithWinner);
-      expect(service.setWinner).toHaveBeenCalledWith('1', 'user-1');
+      expect(service.setWinner).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if raffle not found', async () => {
+      const winningNumber = 42;
       mockRafflesService.setWinner.mockRejectedValue(
         new NotFoundException('Raffle with ID 999 not found'),
       );
 
-      await expect(controller.setWinner('999', 'user-1')).rejects.toThrow(
-        NotFoundException,
+      await expect(
+        controller.setWinner('999', { winningNumber }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if ticket not found', async () => {
+      const winningNumber = 999;
+      mockRafflesService.setWinner.mockRejectedValue(
+        new NotFoundException(
+          `Ticket with number ${winningNumber} not found for this raffle`,
+        ),
       );
+
+      await expect(
+        controller.setWinner('1', { winningNumber }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

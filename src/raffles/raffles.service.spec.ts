@@ -19,6 +19,9 @@ describe('RafflesService', () => {
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
+    ticket: {
+      findUnique: jest.fn(),
+    },
   };
 
   const mockUploadsService = {
@@ -427,9 +430,10 @@ describe('RafflesService', () => {
   });
 
   describe('setWinner', () => {
-    it('should set winner for a raffle successfully', async () => {
+    it('should set winner by finding the ticket with winning number', async () => {
       const raffleId = '1';
-      const winnerId = 'user-1';
+      const winningNumber = 42;
+      const userId = 'user-1';
       const raffle = {
         id: raffleId,
         title: 'Test Raffle',
@@ -443,31 +447,95 @@ describe('RafflesService', () => {
         updatedAt: new Date(),
       };
 
+      const winningTicket = {
+        id: 'ticket-1',
+        number: winningNumber,
+        raffleId,
+        userId,
+        purchaseDate: new Date(),
+      };
+
       const updatedRaffle = {
         ...raffle,
-        winnerId,
+        winnerId: userId,
+        tickets: [
+          {
+            ...winningTicket,
+            user: {
+              id: userId,
+              email: 'winner@example.com',
+              name: 'Winner User',
+              role: 'CLIENT' as any,
+              cpf: '12345678901',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              password: 'hashed',
+            },
+          },
+        ],
       };
 
       mockPrismaService.raffle.findUnique.mockResolvedValue(raffle);
+      mockPrismaService.ticket.findUnique.mockResolvedValue(winningTicket);
       mockPrismaService.raffle.update.mockResolvedValue(updatedRaffle);
 
-      const result = await service.setWinner(raffleId, winnerId);
+      const result = await service.setWinner(raffleId, winningNumber);
 
       expect(result).toEqual(updatedRaffle);
+      expect(prisma.ticket.findUnique).toHaveBeenCalledWith({
+        where: {
+          raffleId_number: {
+            raffleId,
+            number: winningNumber,
+          },
+        },
+      });
       expect(prisma.raffle.update).toHaveBeenCalledWith({
         where: { id: raffleId },
-        data: { winnerId },
+        data: { winnerId: userId },
+        include: {
+          tickets: {
+            where: { number: winningNumber },
+            include: { user: true },
+          },
+        },
       });
     });
 
     it('should throw NotFoundException when raffle does not exist', async () => {
       const raffleId = 'non-existent';
-      const winnerId = 'user-1';
+      const winningNumber = 42;
 
       mockPrismaService.raffle.findUnique.mockResolvedValue(null);
 
-      await expect(service.setWinner(raffleId, winnerId)).rejects.toThrow(
+      await expect(service.setWinner(raffleId, winningNumber)).rejects.toThrow(
         new NotFoundException(`Raffle with ID ${raffleId} not found`),
+      );
+    });
+
+    it('should throw NotFoundException when ticket with winning number does not exist', async () => {
+      const raffleId = '1';
+      const winningNumber = 999;
+      const raffle = {
+        id: raffleId,
+        title: 'Test Raffle',
+        description: 'Description',
+        closingDate: new Date('2025-12-31'),
+        ticketPrice: 10 as any,
+        maxTickets: 100,
+        imageUrl: null,
+        winnerId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.raffle.findUnique.mockResolvedValue(raffle);
+      mockPrismaService.ticket.findUnique.mockResolvedValue(null);
+
+      await expect(service.setWinner(raffleId, winningNumber)).rejects.toThrow(
+        new NotFoundException(
+          `Ticket with number ${winningNumber} not found for this raffle`,
+        ),
       );
     });
   });

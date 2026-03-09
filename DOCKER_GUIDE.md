@@ -8,13 +8,13 @@ O projeto está configurado para rodar completamente em containers Docker, inclu
 
 ```bash
 # Build e iniciar todos os serviços
-docker-compose up -d
+docker compose up -d
 
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Ver logs apenas da aplicação
-docker-compose logs -f app
+docker compose logs -f app
 ```
 
 ### Primeira Execução
@@ -34,7 +34,7 @@ Após o sistema estar rodando, execute o seed para criar o usuário admin:
 
 ```bash
 # Executar seed dentro do container
-docker-compose exec app node prisma/seed-manual.js
+docker compose exec app node prisma/seed-manual.js
 ```
 
 **Credenciais do Admin:**
@@ -45,25 +45,25 @@ docker-compose exec app node prisma/seed-manual.js
 
 ```bash
 # Parar os serviços
-docker-compose down
+docker compose down
 
 # Parar e remover volumes (apaga o banco de dados)
-docker-compose down -v
+docker compose down -v
 
 # Rebuild da aplicação após mudanças no código
-docker-compose up -d --build app
+docker compose up -d --build app
 
 # Acessar o shell do container da aplicação
-docker-compose exec app sh
+docker compose exec app sh
 
 # Acessar o PostgreSQL
-docker-compose exec postgres psql -U postgres -d fique_ryco
+docker compose exec postgres psql -U postgres -d fique_ryco
 
 # Ver status dos containers
-docker-compose ps
+docker compose ps
 
 # Reiniciar apenas a aplicação
-docker-compose restart app
+docker compose restart app
 ```
 
 ### Executar Migrations
@@ -71,7 +71,7 @@ docker-compose restart app
 As migrations são executadas automaticamente ao iniciar o container. Para executar manualmente:
 
 ```bash
-docker-compose exec app npx prisma migrate deploy
+docker compose exec app npx prisma migrate deploy
 ```
 
 ### Acessar a Aplicação
@@ -148,13 +148,13 @@ docker-compose restart postgres
 #### Rebuild completo
 ```bash
 # Parar tudo e remover volumes
-docker-compose down -v
+docker compose down -v
 
 # Rebuild e iniciar
-docker-compose up -d --build
+docker compose up -d --build
 
 # Executar seed novamente
-docker-compose exec app node prisma/seed-manual.js
+docker compose exec app node prisma/seed-manual.js
 ```
 
 ### Variáveis de Ambiente
@@ -173,43 +173,43 @@ As variáveis de ambiente são configuradas diretamente no `docker-compose.yml`:
 
 ```bash
 # Criar backup
-docker-compose exec postgres pg_dump -U postgres fique_ryco > backup.sql
+docker compose exec postgres pg_dump -U postgres fique_ryco > backup.sql
 
 # Restaurar backup
-docker-compose exec -T postgres psql -U postgres fique_ryco < backup.sql
+docker compose exec -T postgres psql -U postgres fique_ryco < backup.sql
 ```
 
 ### Logs e Monitoramento
 
 ```bash
 # Logs em tempo real
-docker-compose logs -f
+docker compose logs -f
 
 # Últimas 100 linhas
-docker-compose logs --tail=100
+docker compose logs --tail=100
 
 # Logs de um serviço específico
-docker-compose logs -f app
-docker-compose logs -f postgres
+docker compose logs -f app
+docker compose logs -f postgres
 ```
 
 ## Fluxo Completo de Uso
 
 ```bash
 # 1. Iniciar tudo
-docker-compose up -d
+docker compose up -d
 
 # 2. Aguardar inicialização (cerca de 30 segundos)
-docker-compose logs -f app
+docker compose logs -f app
 
 # 3. Criar usuário admin
-docker-compose exec app node prisma/seed-manual.js
+docker compose exec app node prisma/seed-manual.js
 
 # 4. Testar a API
 curl http://localhost:3000/api
 
 # 5. Quando terminar
-docker-compose down
+docker compose down
 ```
 
-Pronto! Agora você pode rodar todo o sistema com um único comando: `docker-compose up -d` 🐳
+Pronto! Agora você pode rodar todo o sistema com um único comando: `docker compose up -d` 🐳

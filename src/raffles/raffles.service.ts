@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Raffle } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreateRaffleDto } from './dto/create-raffle.dto';
 import { UpdateRaffleDto } from './dto/update-raffle.dto';
-import { Raffle } from '@prisma/client';
 
 @Injectable()
 export class RafflesService {
@@ -47,7 +47,7 @@ export class RafflesService {
 
   async findAll(): Promise<Raffle[]> {
     return this.prisma.raffle.findMany({
-      orderBy: { closingDate: 'asc' },
+      orderBy: { closingDate: 'desc' },
     });
   }
 

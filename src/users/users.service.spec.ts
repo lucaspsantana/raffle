@@ -221,4 +221,155 @@ describe('UsersService', () => {
       expect(service.validateCpf('123.456.789-09')).toBe(true);
     });
   });
+
+  describe('updateProfile', () => {
+    it('should update user name and phone', async () => {
+      const userId = '1';
+      const updateData = {
+        name: 'Updated Name',
+        phone: '11999999999',
+      };
+
+      const existingUser = {
+        id: userId,
+        email: 'test@example.com',
+        password: 'hashed_password',
+        name: 'Old Name',
+        role: UserRole.CLIENT,
+        cpf: '12345678909',
+        phone: '11987654321',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const updatedUser = {
+        ...existingUser,
+        ...updateData,
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(existingUser);
+      mockPrismaService.user.update = jest.fn().mockResolvedValue(updatedUser);
+
+      const result = await service.updateProfile(userId, updateData);
+
+      expect(result).toEqual({
+        id: userId,
+        email: 'test@example.com',
+        name: 'Updated Name',
+        role: UserRole.CLIENT,
+        cpf: '12345678909',
+        phone: '11999999999',
+        createdAt: existingUser.createdAt,
+        updatedAt: existingUser.updatedAt,
+      });
+      expect(result).not.toHaveProperty('password');
+    });
+
+    it('should update password when current password is correct', async () => {
+      const userId = '1';
+      const bcrypt = require('bcrypt');
+      const currentPassword = 'oldPassword';
+      const newPassword = 'newPassword';
+      const hashedOldPassword = await bcrypt.hash(currentPassword, 10);
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      const updateData = {
+        currentPassword,
+        newPassword,
+      };
+
+      const existingUser = {
+        id: userId,
+        email: 'test@example.com',
+        password: hashedOldPassword,
+        name: 'Test User',
+        role: UserRole.CLIENT,
+        cpf: '12345678909',
+        phone: '11987654321',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const updatedUser = {
+        ...existingUser,
+        password: hashedNewPassword,
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(existingUser);
+      mockPrismaService.user.update = jest.fn().mockResolvedValue(updatedUser);
+
+      const result = await service.updateProfile(userId, updateData);
+
+      expect(result).not.toHaveProperty('password');
+      expect(mockPrismaService.user.update).toHaveBeenCalled();
+    });
+
+    it('should throw error when current password is incorrect', async () => {
+      const userId = '1';
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash('correctPassword', 10);
+
+      const updateData = {
+        currentPassword: 'wrongPassword',
+        newPassword: 'newPassword',
+      };
+
+      const existingUser = {
+        id: userId,
+        email: 'test@example.com',
+        password: hashedPassword,
+        name: 'Test User',
+        role: UserRole.CLIENT,
+        cpf: '12345678909',
+        phone: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(existingUser);
+
+      await expect(service.updateProfile(userId, updateData)).rejects.toThrow(
+        new ConflictException('Current password is incorrect'),
+      );
+    });
+
+    it('should throw error when trying to change password without current password', async () => {
+      const userId = '1';
+
+      const updateData = {
+        newPassword: 'newPassword',
+      };
+
+      const existingUser = {
+        id: userId,
+        email: 'test@example.com',
+        password: 'hashed_password',
+        name: 'Test User',
+        role: UserRole.CLIENT,
+        cpf: '12345678909',
+        phone: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(existingUser);
+
+      await expect(service.updateProfile(userId, updateData)).rejects.toThrow(
+        new ConflictException(
+          'Current password is required to change password',
+        ),
+      );
+    });
+
+    it('should throw error when user not found', async () => {
+      const userId = 'non-existent';
+      const updateData = { name: 'New Name' };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.updateProfile(userId, updateData)).rejects.toThrow(
+        new ConflictException('User not found'),
+      );
+    });
+  });
 });

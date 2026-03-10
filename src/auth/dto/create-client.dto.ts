@@ -1,5 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsCpf } from '../../common/validators/is-cpf.validator';
 
 export class CreateClientDto {
@@ -35,4 +35,15 @@ export class CreateClientDto {
   @IsString()
   @IsCpf()
   cpf: string;
+
+  @ApiPropertyOptional({
+    description: 'Telefone do cliente (10 ou 11 dígitos)',
+    example: '11987654321',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{10,11}$/, {
+    message: 'O telefone deve conter 10 ou 11 dígitos',
+  })
+  phone?: string;
 }

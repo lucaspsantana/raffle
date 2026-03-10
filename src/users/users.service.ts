@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '@prisma/client';
 import { CreateClientDto } from '../auth/dto/create-client.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -36,6 +37,7 @@ export class UsersService {
         email: data.email,
         password: hashedPassword,
         cpf: data.cpf,
+        phone: data.phone,
         role: UserRole.CLIENT,
       },
     });
@@ -58,15 +60,6 @@ export class UsersService {
   async findByCpf(cpf: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { cpf },
-    });
-  }
-
-  /**
-   * Busca usuário por ID
-   */
-  async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
     });
   }
 
@@ -111,5 +104,100 @@ export class UsersService {
     }
 
     return true;
+  }
+
+  /**
+   * Busca usuário por ID (sem retornar senha)
+   */
+  async findById(id: string): Promise<Omit<User, 'password'> | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  /**
+   * Busca usuário por ID (com senha - uso interno)
+   */
+  private async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  /**
+   * Atualiza perfil do usuário
+   */
+  async updateProfile(
+    userId: string,
+    data: {
+      name?: string;
+      phone?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    },
+  ): Promise<Omit<User, 'password'>> {
+    try {
+      const user = await this.findByIdWithPassword(userId);
+      if (!user) {
+        throw new ConflictException('User not found');
+      }
+
+      // Se está tentando alterar a senha, valida a senha atual
+      if (data.newPassword) {
+        if (!data.currentPassword) {
+          throw new ConflictException(
+            'Current password is required to change password',
+          );
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          data.currentPassword,
+          user.password,
+        );
+
+        if (!isPasswordValid) {
+          throw new ConflictException('Current password is incorrect');
+        }
+
+        // Hash da nova senha
+        const hashedPassword = await bcrypt.hash(data.newPassword, 10);
+
+        const updatedUser = await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            ...(data.name && { name: data.name }),
+            ...(data.phone !== undefined && { phone: data.phone }),
+            password: hashedPassword,
+          },
+        });
+
+        // Remove a senha do retorno
+        const { password, ...userWithoutPassword } = updatedUser;
+        return userWithoutPassword;
+      }
+
+      // Atualiza apenas nome e telefone
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(data.name && { name: data.name }),
+          ...(data.phone !== undefined && { phone: data.phone }),
+        },
+      });
+
+      // Remove a senha do retorno
+      const { password, ...userWithoutPassword } = updatedUser;
+      return userWithoutPassword;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
   }
 }

@@ -8,7 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,13 +20,13 @@ import { RafflesService } from './raffles.service';
 
 @ApiTags('raffles')
 @Controller('raffles')
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class RafflesController {
   constructor(private readonly rafflesService: RafflesService) {}
 
   @Post()
   @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Criar nova rifa (Admin)',
@@ -88,6 +88,7 @@ export class RafflesController {
 
   @Patch(':id')
   @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Atualizar rifa (Admin)',
@@ -108,6 +109,7 @@ export class RafflesController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Deletar rifa (Admin)',

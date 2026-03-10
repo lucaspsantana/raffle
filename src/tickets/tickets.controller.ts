@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Post,
-  Get,
   Body,
+  Controller,
+  Get,
   Param,
-  UseGuards,
+  Post,
   Request,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { TicketsService } from './tickets.service';
-import { PurchaseTicketDto } from './dto/purchase-ticket.dto';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { PurchaseTicketDto } from './dto/purchase-ticket.dto';
+import { TicketsService } from './tickets.service';
 
 /**
  * TicketsController - Gerencia compra e listagem de bilhetes
@@ -53,7 +53,7 @@ export class TicketsController {
   @ApiResponse({ status: 404, description: 'Rifa não encontrada' })
   async purchase(@Request() req, @Body() purchaseTicketDto: PurchaseTicketDto) {
     const userId = req.user.id;
-    return this.ticketsService.purchase(userId, purchaseTicketDto.raffleId);
+    return this.ticketsService.purchase(userId, purchaseTicketDto.raffleId, purchaseTicketDto.quantity);
   }
 
   /**

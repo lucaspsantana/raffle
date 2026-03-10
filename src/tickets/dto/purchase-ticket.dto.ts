@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsNumber, IsString, IsUUID } from 'class-validator';
 
 /**
  * DTO para compra de bilhete
@@ -15,4 +15,8 @@ export class PurchaseTicketDto {
   @IsNotEmpty()
   @IsUUID()
   raffleId: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  quantity: number;
 }

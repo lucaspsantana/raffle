@@ -1,10 +1,10 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
+import { Prisma, Ticket } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { Ticket, Prisma } from '@prisma/client';
 
 @Injectable()
 export class TicketsService {
@@ -45,10 +45,14 @@ export class TicketsService {
   }
 
   /**
-   * Purchases a ticket for a raffle with automatic unique number generation
+   * Purchases one or more tickets for a raffle with automatic unique number generation
    * Uses Serializable isolation level to prevent race conditions
    */
-  async purchase(userId: string, raffleId: string): Promise<Ticket> {
+  async purchase(
+    userId: string,
+    raffleId: string,
+    quantity: number,
+  ): Promise<Ticket[]> {
     return await this.prisma.$transaction(
       async (tx) => {
         // Verify raffle exists and is active
@@ -70,32 +74,52 @@ export class TicketsService {
           throw new BadRequestException('This raffle is already closed');
         }
 
-        // Check if there are available tickets
-        if (raffle._count.tickets >= raffle.maxTickets) {
+        // Check if there are available tickets for the requested quantity
+        const remainingTickets = raffle.maxTickets - raffle._count.tickets;
+        if (remainingTickets <= 0) {
           throw new BadRequestException('This raffle is sold out');
         }
 
-        // Generate unique ticket number
-        const ticketNumber = await this.generateUniqueTicketNumber(raffleId);
-
-        // Create the ticket
-        try {
-          return await tx.ticket.create({
-            data: {
-              number: ticketNumber,
-              raffleId,
-              userId,
-              purchaseDate: new Date(),
-            },
-          });
-        } catch (error) {
-          // If we get a unique constraint violation, retry the purchase
-          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-            // Recursively retry the purchase
-            return this.purchase(userId, raffleId);
-          }
-          throw error;
+        if (quantity <= 0) {
+          throw new BadRequestException('Quantity must be greater than zero');
         }
+
+        if (quantity > remainingTickets) {
+          throw new BadRequestException(
+            `Only ${remainingTickets} tickets are available for this raffle`,
+          );
+        }
+
+        const createdTickets: Ticket[] = [];
+
+        for (let i = 0; i < quantity; i++) {
+          try {
+            const ticketNumber = await this.generateUniqueTicketNumber(raffleId);
+
+            const ticket = await tx.ticket.create({
+              data: {
+                number: ticketNumber,
+                raffleId,
+                userId,
+                purchaseDate: new Date(),
+              },
+            });
+
+            createdTickets.push(ticket);
+          } catch (error) {
+            // If we get a unique constraint violation, retry only this ticket creation
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === 'P2002'
+            ) {
+              i--;
+              continue;
+            }
+            throw error;
+          }
+        }
+
+        return createdTickets;
       },
       {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
